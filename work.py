@@ -1,10 +1,23 @@
+import pygame
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
-# Dicionário para armazenar as marcações
+pygame.init()
+fundo = pygame.image.load("assets/bg.jpg")
+
+RED = (255, 0, 0)
+
+WINDOW_SIZE = (800, 600)
+
+
+
+screen = pygame.display.set_mode(WINDOW_SIZE)
+pygame.display.set_caption('Space marker')
+
+
 marks = {}
 
-# Função para salvar as marcações em um arquivo
+
 def save_marks():
     try:
         with open('marks.txt', 'w') as file:
@@ -14,10 +27,10 @@ def save_marks():
     except Exception as e:
         messagebox.showerror('Erro ao salvar', f'Ocorreu um erro ao salvar as marcações: {str(e)}')
 
-# Função para carregar as marcações de um arquivo
+
 def load_marks():
     global marks
-    marks.clear()  # Limpa as marcações atuais
+    marks.clear()  
     try:
         with open('marks.txt', 'r') as file:
             for line in file:
@@ -33,60 +46,51 @@ def load_marks():
     except Exception as e:
         messagebox.showerror('Erro ao carregar', f'Ocorreu um erro ao carregar as marcações: {str(e)}')
 
-# Função para limpar todas as marcações
+
 def clear_marks():
     global marks
     marks.clear()
     redraw_marks()
     messagebox.showinfo('Limpar', 'Marcações removidas.')
 
-# Função para desenhar as marcações na tela
+
 def redraw_marks():
-    canvas.delete('all')  # Limpa o canvas
+     
     for mark_id, data in marks.items():
         x, y = data['position']
-        canvas.create_oval(x-5, y-5, x+5, y+5, outline='red', width=2)
-        canvas.create_text(x, y-10, text=data['name'])
+        pygame.draw.circle(screen, RED, (x, y), 5)  
+        font = pygame.font.Font(None, 20)
+        text = font.render(data['name'], True, RED)
+        screen.blit(text, (x - 10, y - 20))
 
-# Função para lidar com o clique do mouse na imagem
-def on_click(event):
-    x, y = event.x, event.y
+
+def handle_click(pos):
     name = simpledialog.askstring('Nome da Estrela', 'Digite o nome da estrela:')
     if name is None or name.strip() == '':
         name = 'desconhecido'
-    marks[len(marks)+1] = {'name': name, 'position': (x, y)}
+    marks[len(marks)+1] = {'name': name, 'position': pos}
     redraw_marks()
 
-# Configurando a janela principal
-root = tk.Tk()
-root.title('Marcação de Estrelas')
 
-# Criando o canvas para exibir a imagem
-canvas = tk.Canvas(root, width=600, height=400, bg='white')
-canvas.pack()
+running = True
+clock = pygame.time.Clock()
 
-# Carregando marcações previamente salvas, se existirem
-load_marks()
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            save_marks()  
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  
+                pos = pygame.mouse.get_pos()
+                handle_click(pos)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                save_marks()  
+                running = False
 
-# Associando evento de clique do mouse à função on_click
-canvas.bind('<Button-1>', on_click)
+    pygame.display.flip()
+    clock.tick(60)
 
-# Criando menu de opções
-menu_bar = tk.Menu(root)
-root.config(menu=menu_bar)
 
-file_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label='Opções', menu=file_menu)
-file_menu.add_command(label='Salvar marcações', command=save_marks)
-file_menu.add_command(label='Carregar marcações', command=load_marks)
-file_menu.add_command(label='Excluir todas as marcações', command=clear_marks)
-
-# Função para salvar as marcações antes de fechar a janela
-def on_closing():
-    save_marks()
-    root.destroy()
-
-root.protocol("WM_DELETE_WINDOW", on_closing)
-
-# Iniciando o loop principal da aplicação
-root.mainloop()
+pygame.quit()
